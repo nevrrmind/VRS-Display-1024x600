@@ -65,6 +65,7 @@ vrsdspl = dspl()
 font_vrs = pygame.font.Font("fonts/roboto.ttf", 26)
 font_vrs_feeds = pygame.font.Font("fonts/roboto.ttf", 15)
 font_weather = pygame.font.Font("fonts/roboto.ttf", 15)
+font_sqkalarm = pygame.font.Font("fonts/roboto.ttf", 15)
 
 def readvrs():
 	while True:
@@ -86,7 +87,7 @@ def readvrs():
 					break
 				except ValueError:
 					vrsdspl.screen.blit(font_weather.render('Error! No AircraftList.json. Try again...Please wait', True, (0, 0, 0)), (500, 250))
-					print "No AircraftList.json2"
+					print "No AircraftList.json"
 					time.sleep(5)
 		if admin == "on":
 			while True:
@@ -102,6 +103,8 @@ def readvrs():
 			global feeds
 			feeds=admin_stuff['Response']['Feeds']
 		flieger=flights['acList']
+		global sqkalarm
+		sqkalarm=[{'Reg': k.get('Reg', 'unknown'), 'ICAO': k.get('Icao', 'unknown'), 'Squawk': k.get('Sqk', 'unknown')} for k in flieger if k['Sqk'] in sqkinfo.keys()]
 		global flightscount
 		flightscount=flights['totalAc']
 		global milflights
@@ -170,6 +173,9 @@ t2.daemon = True
 def rundisplay():
 	while True:
 		if 'flightscount' in globals():
+			start_line_top=5
+			feed_rect_h=0
+			msg_total=0
 			pygame.mouse.set_visible(0)
 			vrsdspl.screen.fill((194, 194, 194))
 			pygame.draw.rect(vrsdspl.screen, (255, 255, 255), (4,4,504,240), 2)
@@ -187,14 +193,14 @@ def rundisplay():
 				vrsdspl.screen.blit(font_weather.render('Weather in %s' %location , True, (0, 0, 0)), (10, 250))
 				vrsdspl.screen.blit(font_weather.render('@ %s' %weather_time , True, (0, 0, 0)), (10, 265))
 				vrsdspl.screen.blit(font_weather.render('Cloud coverage: %s%%' %clouds , True, (0, 0, 0)), (10, 280))
-				vrsdspl.screen.blit(font_weather.render('Temp: %s °C' %temp , True, (0, 0, 0)), (10, 295))
+				vrsdspl.screen.blit(font_weather.render('Temp: %s Â°C' %temp , True, (0, 0, 0)), (10, 295))
 				vrsdspl.screen.blit(pygame.image.load('images/icons/%s.png' %wettericon), (180, 250))
 				vrsdspl.screen.blit(font_weather.render('Wind: %s km/h from %s' %(windspeed, compass) , True, (0, 0, 0)), (10, 315))
 				vrsdspl.screen.blit(pygame.image.load('images/compass/%s.png' %compass), (10, 345))
 			if admin=="on":
-				start_line_top=5
-				feed_rect_h=0
-				msg_total=0
+				#start_line_top=5
+				#feed_rect_h=0
+				#msg_total=0
 				for k in feeds:
 					if k['Merged']==0:
 						name=k['Name'][:12] + (k['Name'][12:] and '..')
@@ -214,6 +220,14 @@ def rundisplay():
 						feed_rect_h+=16
 				vrsdspl.screen.blit(font_vrs.render('Msgs: %s' %format_int(msg_total) , True, (0, 0, 0)), (200, 210))
 				pygame.draw.rect(vrsdspl.screen, (255, 255, 255), (510,4,510,feed_rect_h), 2)
+			sqkalarm_top=16+start_line_top
+			for k in sqkalarm:
+				if k['Squawk'] in warnlist:
+					vrsdspl.screen.blit(font_sqkalarm.render('Reg:%s ICAO:%s Squawk:%s Trans: %s' %(k['Reg'], k['ICAO'], k['Squawk'], sqkinfo[(k['Squawk'])].decode('utf-8')) , True, (255, 0, 0)), (510, sqkalarm_top))
+					sqkalarm_top+=16
+				else:
+					vrsdspl.screen.blit(font_sqkalarm.render('Reg:%s ICAO:%s Squawk:%s Trans: %s' %(k['Reg'], k['ICAO'], k['Squawk'], sqkinfo[(k['Squawk'])].decode('utf-8')) , True, (0, 0, 0)), (510, sqkalarm_top))
+					sqkalarm_top+=16
 			pygame.display.update()
 			time.sleep(0.2)
 		else:
